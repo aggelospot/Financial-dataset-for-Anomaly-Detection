@@ -26,6 +26,7 @@ def get_sec_data(cik_value, failed_requests_counter):
     """
     Retrieves data from the SEC API for a given CIK value.
     Increments failed_requests_counter if the request fails.
+    No longer used, replaced by reading local json files instead.
     """
     sec_api_url = f"https://data.sec.gov/api/xbrl/companyfacts/CIK{cik_value}.json"
     try:
@@ -126,6 +127,9 @@ def process_ecl_with_local_sec_data(input_file_path, output_file_path, sec_data_
                             matching_val = None
                             min_date_diff = 360  # Threshold in days
                             for data_point in data_points:
+                                if (data_point.get('form') != '10-K'): continue # Only check the data_points from 10-K reports.
+                                # print("curr data point: ", data_point.get('form'), data_point.get('form') == '10-K')
+
                                 data_end_date_str = data_point.get('end', '')
                                 data_end_date = parse_date(data_end_date_str)
                                 if data_end_date:
@@ -135,6 +139,7 @@ def process_ecl_with_local_sec_data(input_file_path, output_file_path, sec_data_
                                         min_date_diff = date_diff
                                         if date_diff == 0:
                                             break  # Exact match found
+
 
                             if matching_val is not None:
                                 # Add the variable and its value to the row
@@ -148,9 +153,8 @@ def process_ecl_with_local_sec_data(input_file_path, output_file_path, sec_data_
                         #     f"CIK {cik_cleaned} - Period '{ecl_date_str}': No data found.\n")
                         else:
                             # Optionally, log the number of variables matched
-                            percent_matched = (
-                                                          num_variables_matched / total_variables) * 100 if total_variables > 0 else 0
-                            # Uncomment the next line if you want to log periods with matches
+                            percent_matched = (num_variables_matched / total_variables) * 100 if total_variables > 0 else 0
+                            # Uncomment the next line to log periods with matches
                             error_file.write(f"  - Period '{ecl_date_str}': {num_variables_matched}/{total_variables} variables matched ({percent_matched:.2f}%)\n")
                     else:
                         # SEC data not found for this CIK
@@ -320,7 +324,7 @@ def main():
 
 
     os.makedirs(output_dir, exist_ok=True)
-    output_file_path = os.path.join(output_dir, f'ecl_combined_{int(time.time())}.json')
+    output_file_path = os.path.join(output_dir, f'ecl_combined(10-K)_{int(time.time())}.json')
 
     # Process the ECL file and write updated rows to the output file
     process_ecl_with_local_sec_data(input_file_path, output_file_path, sec_data_dir)
