@@ -152,9 +152,7 @@ def process_ecl_with_local_sec_data(input_file_path, output_file_path, sec_data_
                                 f"  - Period '{ecl_date_str}': No data found.\n")
                         #     f"CIK {cik_cleaned} - Period '{ecl_date_str}': No data found.\n")
                         else:
-                            # Optionally, log the number of variables matched
                             percent_matched = (num_variables_matched / total_variables) * 100 if total_variables > 0 else 0
-                            # Uncomment the next line to log periods with matches
                             error_file.write(f"  - Period '{ecl_date_str}': {num_variables_matched}/{total_variables} variables matched ({percent_matched:.2f}%)\n")
                     else:
                         # SEC data not found for this CIK

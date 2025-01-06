@@ -89,7 +89,8 @@ def perform_eda(file_path, sample_frac=0.01, output_dir='./eda_results'):
         plt.close()
         print(f"Correlation matrix heatmap saved to {heatmap_file}")
 
-    # FUTURE TODO:
+    # FUTURE
+    # TODO:
     # mean, median, std for numerical cols
     # outliers
     # value counts for categorical columns

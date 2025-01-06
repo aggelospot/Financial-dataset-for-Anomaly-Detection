@@ -52,18 +52,17 @@ def post_process_ecl(input_file_path, output_file_path):
     print(f"Total rows processed: {total_rows}")
     print(f"Rows with financial variables: {rows_with_financial_vars}")
     print(f"Rows without financial variables (omitted): {total_rows - rows_with_financial_vars}")
-    #
-    # Total rows processed: 50000
-    # Rows with financial variables: 27863
-    # Rows without financial variables (omitted): 22137
+    # Result
+    # Total rows processed: 68620
+    # Rows with financial variables: 40315
+    # Rows without financial variables(omitted): 28305
 
 
 
 
 def main():
-    # Set the paths to your input and output files
-    input_file_path = './outputs/ecl_combined_1733174753.json'  # Path to your combined ECL dataset
-    output_file_path = './outputs/ecl_filtered.json'  # Path for the filtered dataset
+    input_file_path = './outputs/ecl_combined.json'
+    output_file_path = './outputs/ecl_filtered.json'
 
     # Ensure the output directory exists
     output_dir = os.path.dirname(output_file_path)
