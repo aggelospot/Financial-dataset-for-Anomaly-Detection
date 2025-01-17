@@ -133,6 +133,7 @@ def process_ecl_with_local_sec_data(input_file_path, output_file_path, sec_data_
                                 data_end_date_str = data_point.get('end', '')
                                 data_end_date = parse_date(data_end_date_str)
                                 if data_end_date:
+                                    # TODO: Check if abs is needed
                                     date_diff = abs((data_end_date - ecl_date).days)
                                     if date_diff < min_date_diff:
                                         matching_val = data_point.get('val')
