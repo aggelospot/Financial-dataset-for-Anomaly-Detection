@@ -1,4 +1,5 @@
-import json
+import requests
+import logging
 import pandas as pd
 from datetime import datetime
 import logging
@@ -27,47 +28,6 @@ def parse_date(date_str):
         return None
 
 
-def parse_ECL_json(file_path):
-    # To store unique keys across all rows
-    key_set = set()
-    first_row_key_count = None
-    row_counter = 0
-    inconsistent_rows = 0
-
-    with open(file_path, 'r') as f:
-        for line in f:
-            try:
-                row = json.loads(line.strip())
-                print("currect cik: ", row["cik"])
-                # Convert each line to a dictionary
-                json_obj = json.loads(line.strip())
-
-                # Extract keys from the current row
-                current_keys = set(json_obj.keys())
-
-                # Add current keys to the global key set
-                key_set.update(current_keys)
-
-                # Check consistency of the number of keys
-                if first_row_key_count is None:
-                    first_row_key_count = len(current_keys)
-                elif len(current_keys) != first_row_key_count:
-                    inconsistent_rows += 1
-
-                row_counter += 1
-
-            except json.JSONDecodeError:
-                print(f"Error decoding JSON on row {row_counter + 1}")
-                continue
-
-    # Convert set to list and print
-    key_list = list(key_set)
-    print(f"Keys found in the JSON: {key_list}")
-    print(f"Total rows processed: {row_counter}")
-    print(f"Inconsistent rows (different key counts): {inconsistent_rows}")
-
-    return key_list, row_counter, inconsistent_rows
-
 def get_file_line_count(file_path):
     """
     Get the total number of rows in the input file to determine how many rows are remaining to be parsed.
@@ -93,77 +53,112 @@ def get_column_list_from_json(file_path):
         column_names = chunk.columns.tolist()
         break
 
-    print("Column Names:", column_names)
+    # print("Column Names:", column_names)
     return column_names
 
 
-
-def analyze_combined_file(output_file_path):
+def get_sec_data(cik_value, failed_requests_counter):
     """
-    *** DEPRECATED ***
-    Analyzes the combined ECL dataset file.
-    - Displays the total number of unique CIK numbers.
-    - Checks if any row has different columns from the previous one.
-    - Provides additional statistics.
+    Retrieves data from the SEC API for a given CIK value.
+    Increments failed_requests_counter if the request fails.
+    No longer used, replaced by reading local json files instead.
     """
-    unique_cik_set = set()
-    previous_keys = None
-    rows_with_different_columns = 0
-    total_rows = 0
-    total_columns = 0
+    logging.basicConfig(level=logging.INFO)
+    HEADERS = {
+        'User-Agent': 'MyAppName/1.0 (myemail@example.com)'
+    }
 
-    with open(output_file_path, 'r') as f:
-        for line in f:
-            try:
-                row = json.loads(line.strip())
-                total_rows += 1
-
-                # Get the 'cik' field
-                cik = row.get('cik', '')
-                unique_cik_set.add(cik)
-
-                # Get current row's keys
-                current_keys = set(row.keys())
-                total_columns += len(current_keys)
-
-                if previous_keys is not None and current_keys != previous_keys:
-                    rows_with_different_columns += 1
-
-                previous_keys = current_keys
-
-            except json.JSONDecodeError:
-                logging.error(f"Error decoding JSON on line {total_rows}")
-                continue
-
-    print(f"Total unique CIK numbers: {len(unique_cik_set)}")
-    print(f"Rows with different columns from previous row: {rows_with_different_columns}")
-    print(f"Total rows analyzed: {total_rows}")
-    average_columns_per_row = total_columns / total_rows if total_rows > 0 else 0
-    print(f"Average number of columns per row: {average_columns_per_row:.2f}")
-
-    rows_without_sec_data = 0
-    # Define the original ECL keys to identify added SEC data keys
-    original_keys = [
-        'bankruptcy_date_1', 'label', 'bankruptcy_date_2', 'filing_date', 'datadate',
-        'bankruptcy_date_3', 'opinion_text', 'item_7', 'bankruptcy_prediction_split',
-        'cik', 'company', 'period_of_report', 'cik_year', 'qualified', 'gc_list',
-        'can_label', 'filename', 'gvkey'
-    ]
-
-    with open(output_file_path, 'r') as f:
-        for line in f:
-            try:
-                row = json.loads(line.strip())
-                # Identify SEC data keys by subtracting original keys from all keys
-                sec_keys = set(row.keys()) - set(original_keys)
-                if not sec_keys:
-                    rows_without_sec_data += 1
-            except json.JSONDecodeError:
-                continue
-
-    print(f"Rows without any added SEC data: {rows_without_sec_data}")
+    sec_api_url = f"https://data.sec.gov/api/xbrl/companyfacts/CIK{cik_value}.json"
+    try:
+        response = requests.get(sec_api_url, headers=HEADERS)
+        if response.status_code == 200:
+            return response.json(), failed_requests_counter
+        else:
+            # logging.warning(f"\nFailed to retrieve data for CIK {cik_value}: HTTP {response.status_code}")
+            failed_requests_counter += 1
+            return None, failed_requests_counter
+    except requests.RequestException as e:
+        logging.error(f"Request exception for CIK {cik_value}: {e}")
+        failed_requests_counter += 1
+        return None, failed_requests_counter
 
 
+def analyze_missing_columns_by_cik(ecl_companyfacts_df, cik, years, columns_to_check):
+    """
+    Analyze missing columns for a given CIK and a list of years, and find related non-NaN columns.
 
-# file_path = './data/ECL_AA_subset.json'
-# parse_ECL_json(file_path)
+    Args:
+        ecl_companyfacts_df (pd.DataFrame): The DataFrame containing the data.
+        cik (int): The CIK value to filter the data.
+        years (list): A list of years to filter the data.
+        columns_to_check (list): List of column names to check for missing values.
+
+    Returns:
+        dict: A dictionary with years as keys, mapping missing columns to related non-NaN columns and their values.
+    """
+    if (ecl_companyfacts_df[ecl_companyfacts_df['cik'] == cik].empty):
+        print("CIK not found.")
+        return
+
+    print(
+        f"Analyzing company \"{ecl_companyfacts_df[ecl_companyfacts_df['cik'] == cik]['company'].iloc[0]}\", with CIK = {cik}.")
+    results = {}
+
+    for year in years:
+        print(f"--- Analyzing Year: {year} ---")
+
+        # Filter the DataFrame for the specific cik and year
+        filtered_row = ecl_companyfacts_df[
+            (ecl_companyfacts_df['cik'] == cik) & (ecl_companyfacts_df['cik_year'] == year)
+            ]
+        if filtered_row.empty:
+            print("No variables were matched for this year.")
+            continue
+
+        # Check which columns in columns_to_check are NaN in the filtered row
+        missing_columns = [
+            col for col in columns_to_check if pd.isna(filtered_row[col]).all()
+        ]
+
+        related_columns_dict = {}
+
+        if missing_columns == []:
+            print("All variables are present.")
+            continue
+
+        # print("Missing column list for this year: ", missing_columns)
+
+        for missing_col in missing_columns:
+
+            # Find columns with names similar to the missing column
+            similar_columns = [
+                col for col in ecl_companyfacts_df.columns if missing_col in col
+            ]
+
+            # Filter the similar columns to only include those with non-NaN values in the specific row
+            non_nan_columns = [
+                col for col in similar_columns if not pd.isna(filtered_row[col]).all()
+            ]
+
+            # Store the non-NaN columns and their values in the dictionary
+            if non_nan_columns:
+                related_columns_dict[missing_col] = {
+                    "related_columns": non_nan_columns,
+                    "values": filtered_row[non_nan_columns].to_dict(orient="records")[0],
+                    # Extract values for these columns
+                }
+            else:
+                print(f'No related variables found for missing column \"{missing_col}\".')
+
+        # Store the results for this year
+        results[year] = related_columns_dict
+
+        # Print the results for this year
+        for missing_col, details in related_columns_dict.items():
+            print(f"Missing Column: {missing_col}")
+            print("Related Columns:", details["related_columns"])
+            print("Values in Related Columns:")
+            print(details["values"])
+            print("\n")
+
+    return results

@@ -18,15 +18,13 @@ class DataLoader:
 
     def load_dataset(self, file_path: str, alias: str = None, **kwargs) -> pd.DataFrame:
         """
-        Automatically detects CSV or JSON based on file extension,
-        loads the dataset, and stores it in the loaded_data dictionary.
+        Detects CSV or JSON based on file extension, loads the dataset,
+        and stores it in the loaded_data dictionary.
 
         Parameters
         ----------
-        file_path : str
-            Path to the file to load.
-        **kwargs : dict
-            Additional arguments to pass to the Pandas read functions.
+        file_path : str Path to the file to load.
+        **kwargs : dict Additional arguments to pass to the Pandas read functions.
 
         Returns
         -------
@@ -37,6 +35,7 @@ class DataLoader:
         _, extension = os.path.splitext(file_path)
         extension = extension.lower()
 
+        print(f"Loading dataset: {os.path.basename(file_path)}")
         if extension == '.csv':
             df = pd.read_csv(file_path, **kwargs)
         elif extension == '.json':
@@ -55,9 +54,61 @@ class DataLoader:
         else:
             raise KeyError(f"No dataset loaded with key: {key}")
 
+    def save_dataset(self, key: str, out_path: str, **kwargs) -> None:
+        """
+        Saves the DataFrame associated with the given key to an output file as
+        either CSV or JSON, inferred by the file extension.
+
+        Parameters
+        ----------
+        key : str
+            The key in self.loaded_data corresponding to the DataFrame to save.
+        out_path : str
+            The path (including filename) to which the DataFrame will be saved.
+            The file extension (.csv or .json) determines the format.
+        **kwargs : dict
+            Additional arguments to pass to the Pandas writer methods (e.g., index=False).
+        """
+        df = self.get_dataset(key)
+
+        _, extension = os.path.splitext(out_path)
+        extension = extension.lower()
+
+        if extension == '.csv':
+            df.to_csv(out_path, index=False, **kwargs)
+        elif extension == '.json':
+            df.to_json(out_path, **kwargs)
+        else:
+            raise ValueError("Unsupported file extension. Please use .csv or .json.")
+
+
     def drop_na(self, key: str, how: str = 'any'):
         df = self.get_dataset(key)
         self.loaded_data[key] = df.dropna(how=how)
+
+    def column_distribution(self, key: str, column_name: str) -> pd.Series:
+        """
+        Returns the frequency (value counts) of each unique entry in the specified
+        column for the given dataset key.
+
+        Parameters
+        ----------
+        key : str
+            The key in self.loaded_data for the desired DataFrame.
+        column_name : str
+            The name of the column in the DataFrame to analyze.
+
+        Returns
+        -------
+        pd.Series
+            A Pandas Series with the counts of each unique value (including NaN),
+            indexed by the unique values in `column_name`.
+        """
+        df = self.get_dataset(key)
+        if column_name not in df.columns:
+            raise ValueError(f"Column '{column_name}' not found in DataFrame '{key}'.")
+
+        return df[column_name].value_counts(dropna=False)
 
     def list_datasets(self):
         return list(self.loaded_data.keys())

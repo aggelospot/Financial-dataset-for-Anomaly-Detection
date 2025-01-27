@@ -1,0 +1,52 @@
+# Ignore the deprecated directory
+deprecated/
+
+# Ignore compiled Python files
+*.pyc
+*.pyo
+__pycache__/
+
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Ignore logs
+*.log
+logs/
+outputs/errors/errors_log.txt
+
+# Ignore virtual environments
+venv/
+env/
+.virtualenv/
+
+# Ignore temporary files and directories
+*.tmp
+*.swp
+*.swo
+*.bak
+*.backup
+*.DS_Store
+
+# Ignore system files
+Thumbs.db
+.DS_Store
+*.~lock.*
+
+# Ignore output and backup directories unless needed
+outputs/backup/
+outputs/errors/
+
+# Ignore user-specific settings
+.idea/
+.vscode/
+*.code-workspace
+
+# Ignore data files (optional)
+# Uncomment if you want to ignore the data directory or specific files
+# data/
+# *.json
+# *.csv
+
+# Exclude specific files you may not want to track
+test.ipynb
+*.txt

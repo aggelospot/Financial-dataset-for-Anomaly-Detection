@@ -3,9 +3,13 @@ import json
 import time
 import logging
 import os
+import pandas as pd
+import numpy as np
+
 
 # Our packages
-from tools.utils import clean_cik, get_file_line_count
+from tools.utils import clean_cik, get_file_line_count, get_column_list_from_json
+from tools import config
 
 
 # Configure logging
@@ -30,11 +34,6 @@ def process_ecl_with_local_sec_data(input_file_path, output_file_path, sec_data_
     # Get the total number of rows in the input file to determine how many rows are remaining to be parsed.
     total_rows = get_file_line_count(input_file_path)
 
-
-    # with open(input_file_path, 'r') as input_file:
-    #     print("Reading the total number of rows of input file: {input_file_path}...")
-    #     total_rows = sum(1 for _ in input_file)
-
     # Open the error log and input files
     with open(error_file_path, 'w') as error_file:
         with open(input_file_path, 'r') as input_file, open(output_file_path, 'w') as output_file:
@@ -44,11 +43,7 @@ def process_ecl_with_local_sec_data(input_file_path, output_file_path, sec_data_
                     # if row_counter > 100: break  # Break condition for testing
                     row = json.loads(line.strip())
 
-                    # (Old method) Get date and CIK key for this row
-                    # ecl_date_str = row.get('period_of_report', '')
-                    # ecl_date = parse_date(ecl_date_str)
-
-                    # (New method) Extract the year from the 'cik_year' field
+                    # Extract the year from the 'cik_year' field
                     cik_year_str = row.get('cik_year', '')
                     cik_year = cik_year_str.split('__')[-1]  # Extract the year part (e.g., "2015")
 
@@ -98,16 +93,9 @@ def process_ecl_with_local_sec_data(input_file_path, output_file_path, sec_data_
                             # Now data_points is a list of dictionaries
                             # Find the data point that matches the ecl_date or closest date within threshold
                             matching_val = None
-                            min_date_diff = 360  # Threshold in days
                             for data_point in data_points:
                                 """ Note: I used the 'in' keyword instead of '==' to match columns with strings like '10-K/A'. """
                                 if ('10-K' not in data_point.get('form')): continue # Only check the data_points from 10-K reports.
-
-
-                                # (Old method)
-                                # print("curr data point: ", data_point.get('form'), data_point.get('form') == '10-K')
-                                # data_end_date_str = data_point.get('end', '')
-                                # data_end_date = parse_date(data_end_date_str)
 
                                 # New method: Only match the fiscal year.
                                 fiscal_year = data_point.get('fy', '')
@@ -116,14 +104,6 @@ def process_ecl_with_local_sec_data(input_file_path, output_file_path, sec_data_
                                     if str(cik_year) == str(fiscal_year):  # Exact year match
                                         matching_val = data_point.get('val')
                                         break  # Exact match found
-
-                                    """ Old method -- Matches slightly more variables, but probably incorrectly. """
-                                    # date_diff = abs((data_end_date - ecl_date).days)
-                                    # if date_diff < min_date_diff:
-                                    #     matching_val = data_point.get('val')
-                                    #     min_date_diff = date_diff
-                                    #     if date_diff == 0:
-                                    #         break  # Exact match found
 
 
                             if matching_val is not None:
@@ -151,11 +131,9 @@ def process_ecl_with_local_sec_data(input_file_path, output_file_path, sec_data_
                     logging.error(f"Error decoding JSON on row {row_counter}")
                     continue
 
-            # No additional error logging needed at the end
-
     # Clear the progress bar line after completion
     print("\rProcessing complete.                      ")
-    print(f"Total rows processed: {row_counter}")
+    print(f"\nTotal rows processed: {row_counter}")
     print(f"Error log written to: {error_file_path}")
 
 
@@ -210,22 +188,33 @@ def post_process_ecl(input_file_path, output_file_path):
     print(f"Rows without financial variables (omitted): {total_rows - rows_with_financial_vars}")
 
 
+def drop_sec_variables_by_null_percentage(columns_stats_df, ecl_companyfacts, output_filename=config.POST_PROCESSED_DATASET_FILEPATH, max_null_percentage=22.0):
+    """
+    Reads the column statistics file, and drops all SEC variables that don't meet a certain max_null_percentage threshold.
+    Writes the resulting DF to a file.
 
-# def main():
-#     input_file_path = './data/ECL_AA_subset.json'
-#     sec_data_dir = './data/companyfacts'
-#     output_dir = './outputs'
-#
-#
-#
-#     os.makedirs(output_dir, exist_ok=True)
-#     output_file_path = os.path.join(output_dir, f'ecl_combined(10-K)_{int(time.time())}.json')
-#
-#     # Process the ECL file and write updated rows to the output file
-#     process_ecl_with_local_sec_data(input_file_path, output_file_path, sec_data_dir)
-#
-#     # process_ecl_file(input_file_path, output_file_path, num_rows=50000)
-#     # analyze_combined_file(output_file_path)
-#
-# if __name__ == '__main__':
-#     main()
+    :param columns_stats_df: The 'column_statistics' dataframe
+    :param ecl_companyfacts: The ECL dataset with added SEC variables
+    :param max_null_percentage: The threshold.
+    """
+
+    selected_columns = columns_stats_df[columns_stats_df['percentage_nulls'] <= max_null_percentage]['column'].tolist()
+    print("Selected columns: ", selected_columns)
+    numeric_columns = ecl_companyfacts[selected_columns].select_dtypes(include=[np.number]).columns.tolist()
+    print("Numeric columns: ", numeric_columns)
+
+
+    # Combine numeric columns with original columns
+    original_columns = ecl_companyfacts[get_column_list_from_json(config.ECL_FILE_PATH)]
+    combined_dataset = pd.concat([original_columns, ecl_companyfacts[numeric_columns]], axis=1)
+
+    # Drop rows where any of the selected numeric columns are null
+    print("Shape before dropping NAs: ", combined_dataset.shape)
+    cleaned_combined_dataset = combined_dataset.dropna(subset=numeric_columns)
+    print("Shape after dropping NAs: ", cleaned_combined_dataset.shape)
+
+    # Write the cleaned dataset to a CSV file
+    cleaned_combined_dataset.to_csv(output_filename, index=False)
+
+    print(f"Post processed dataset written to: {output_filename}")
+
