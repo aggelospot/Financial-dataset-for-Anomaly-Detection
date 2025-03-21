@@ -51,4 +51,4 @@ downloads/
 
 # Exclude specific files you may not want to track
 test.ipynb
-*.txt
+#*.txt
