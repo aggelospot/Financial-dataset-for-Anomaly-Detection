@@ -3,6 +3,11 @@ import logging
 import pandas as pd
 from datetime import datetime
 import logging
+import re
+import os
+import json
+from fuzzywuzzy import fuzz
+from tools import config
 
 logging.basicConfig(level=logging.INFO)
 
@@ -17,6 +22,23 @@ def clean_cik(cik_value):
     cik_value = cik_value.zfill(10)  # Pad with leading zeros to make it 10 digits
     return cik_value
 
+def extract_year_from_cik_year(cik_year):
+    cik_year = cik_year.split('__')[-1]
+    return cik_year
+
+def extract_year_from_filename(filename):
+    match = re.search(r'-(\d{2})-', filename)
+
+    # if match:
+    #     print("returning ", match.group(1))
+    return int("20" + match.group(1)) if match else None
+
+def extract_accession_number_regex(filename):
+    match = re.search(r'(\d{10}-\d{2}-\d{6})', filename)
+    return match.group(1) if match else None
+
+def extract_accession_number_index(filename: str) -> str:
+    return filename[-25:-5]  # Extract last 20 characters before ".json"
 
 def parse_date(date_str):
     """
@@ -57,7 +79,7 @@ def get_column_list_from_json(file_path):
     return column_names
 
 
-def get_sec_data(cik_value, failed_requests_counter):
+def get_sec_companyfacts(cik_value, failed_requests_counter):
     """
     Retrieves data from the SEC API for a given CIK value.
     Increments failed_requests_counter if the request fails.
@@ -81,6 +103,58 @@ def get_sec_data(cik_value, failed_requests_counter):
         logging.error(f"Request exception for CIK {cik_value}: {e}")
         failed_requests_counter += 1
         return None, failed_requests_counter
+
+
+def match_concept_in_section(target_concepts, concept_list):
+    """
+    Matches a list of taxonomies with their possible synonyms, as defined in the 'xbrl_mapping.json' file.
+    Returns a json of the matched concepts (does not include unmatched concepts)
+    """
+    from fuzzywuzzy import fuzz
+
+    row = {}
+    for concept in concept_list:
+        concept_lower = concept.lower()
+
+        # For each xbrl tag, see if there's a fuzzy match
+        for col_name, taxonomy_object in target_concepts.items():
+            best_score = 0
+            # print(f"Current taxonomy: {col_name}")
+
+            # Evaluate this concept against each synonym
+            for synonym in taxonomy_object.get("concepts"):
+                # print(f"matching synonym: {synonym}")
+
+                score = fuzz.token_set_ratio(synonym.lower(), concept_lower) # Use partial_ratio to allow substring matches
+                if score > best_score:
+                    best_score = score
+
+            if best_score >= taxonomy_object.get("match_threshold"):
+                if col_name in row:
+                    # print("row col ", row[col_name])
+                    prev_score = fuzz.token_set_ratio(row[col_name].lower(), concept_lower)
+                    if best_score > prev_score:
+                        # print(f"REPLACED {row[col_name]} with {concept}, prevScore: {prev_score}, new score: {best_score}")
+                        row[col_name] = concept
+                else:
+                    # print(f"Matched {col_name} with {concept}. Score: {best_score}")
+                    row[col_name] = concept
+            else:
+                best_score = 0
+                for synonym in taxonomy_object.get("concepts"):
+                    score = fuzz.partial_ratio(synonym.lower(),concept_lower)  # Use partial_ratio to allow substring matches
+                    if score > best_score:
+                        best_score = score
+                if best_score >= taxonomy_object.get("match_threshold"):
+                    if col_name in row:
+                        # print("row col ", row[col_name])
+                        prev_score = fuzz.partial_ratio(row[col_name].lower(), concept_lower)
+                        if best_score > prev_score:
+                            row[col_name] = concept
+                    else:
+                        row[col_name] = concept
+    return row
+
 
 
 def analyze_missing_columns_by_cik(ecl_companyfacts_df, cik, years, columns_to_check):
@@ -145,7 +219,6 @@ def analyze_missing_columns_by_cik(ecl_companyfacts_df, cik, years, columns_to_c
                 related_columns_dict[missing_col] = {
                     "related_columns": non_nan_columns,
                     "values": filtered_row[non_nan_columns].to_dict(orient="records")[0],
-                    # Extract values for these columns
                 }
             else:
                 print(f'No related variables found for missing column \"{missing_col}\".')
@@ -162,3 +235,17 @@ def analyze_missing_columns_by_cik(ecl_companyfacts_df, cik, years, columns_to_c
             print("\n")
 
     return results
+
+
+
+
+
+
+
+
+
+
+
+
+
+

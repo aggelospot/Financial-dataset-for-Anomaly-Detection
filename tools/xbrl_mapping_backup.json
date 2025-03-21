@@ -1,0 +1,69 @@
+{
+  "IncomeStatement": {
+    "revenues": [
+      "TotalRevenues",
+      "Revenues",
+      "SalesRevenueNet",
+      "SalesOrRevenue"
+    ],
+    "operating_expenses": [
+      "OperatingExpenses",
+      "OperatingCostsAndExpenses",
+      "CostAndExpenseOperating",
+      "CostsAndExpenses"
+    ],
+    "operating_income": [
+      "OperatingIncomeLoss"
+    ],
+    "net_income": [
+      "NetIncomeLoss",
+      "ProfitLoss"
+    ],
+    "earnings_per_share_basic": [
+      "EarningsPerShareBasic"
+    ],
+    "earnings_per_share_diluted": [
+      "EarningsPerShareDiluted",
+      "DilutedEarningsLossPerShare",
+      "EarningsPerShareBasicAndDiluted"
+    ]
+  },
+  "BalanceSheet": {
+    "total_current_assets": [
+      "AssetsCurrent"
+    ],
+    "total_noncurrent_assets": [
+      "AssetsNoncurrent"
+    ],
+    "total_assets": [
+      "Assets",
+      "TotalAssets",
+      "AssetsNet"
+    ],
+    "total_current_liabilities": [
+      "LiabilitiesCurrent",
+      "CurrentLiabilities",
+      "TotalCurrentLiabilities"
+    ],
+    "total_noncurrent_liabilities": [
+      "LiabilitiesNoncurrent",
+      "NoncurrentLiabilities",
+      "LongTermLiabilities"
+    ],
+    "total_liabilities": [
+      "Liabilities",
+      "TotalLiabilities",
+      "LiabilitiesNet"
+    ],
+    "stockholders_equity": [
+      "StockholdersEquity",
+      "ShareholdersEquity",
+      "Equity"
+    ],
+    "total_liabilities_equity": [
+      "LiabilitiesAndStockholdersEquity",
+      "TotalLiabilitiesAndEquity",
+      "LiabilitiesAndEquity"
+    ]
+  }
+}

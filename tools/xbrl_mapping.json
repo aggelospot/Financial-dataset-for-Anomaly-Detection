@@ -1,0 +1,173 @@
+{
+  "IncomeStatement": {
+    "revenues": {
+      "match_threshold": 80,
+      "concepts": [
+        "TotalRevenues",
+        "Revenues",
+        "SalesRevenueNet",
+        "SalesOrRevenue"
+      ]
+    },
+    "operating_expenses": {
+      "match_threshold": 80,
+      "concepts": [
+        "OperatingExpenses",
+        "CostOfGoodsSold",
+        "CostAndExpenseOperating",
+        "CostsAndExpenses",
+        "GeneralAndAdministrativeExpense"
+      ]
+    },
+    "operating_income": {
+      "match_threshold": 80,
+      "concepts": [
+        "OperatingIncomeLoss"
+      ]
+    },
+    "net_income": {
+      "match_threshold": 80,
+      "concepts": [
+        "NetIncomeLoss",
+        "ProfitLoss"
+      ]
+    },
+    "earnings_per_share_basic": {
+      "match_threshold": 80,
+      "concepts": [
+        "EarningsPerShareBasic"
+      ]
+    },
+    "earnings_per_share_diluted": {
+      "match_threshold": 80,
+      "concepts": [
+        "EarningsPerShareDiluted",
+        "DilutedEarningsLossPerShare",
+        "EarningsPerShareBasicAndDiluted"
+      ]
+    }
+  },
+  "BalanceSheet": {
+    "total_current_assets": {
+      "match_threshold": 80,
+      "concepts": [
+        "AssetsCurrent"
+      ]
+    },
+    "total_noncurrent_assets": {
+      "match_threshold": 80,
+      "concepts": [
+        "AssetsNoncurrent"
+      ]
+    },
+    "total_assets": {
+      "match_threshold": 80,
+      "concepts": [
+        "Assets",
+        "TotalAssets",
+        "AssetsNet"
+      ]
+    },
+    "total_current_liabilities": {
+      "match_threshold": 80,
+      "concepts": [
+        "LiabilitiesCurrent",
+        "CurrentLiabilities",
+        "TotalCurrentLiabilities"
+      ]
+    },
+    "total_noncurrent_liabilities": {
+      "match_threshold": 80,
+      "concepts": [
+        "LiabilitiesNoncurrent",
+        "NoncurrentLiabilities",
+        "LongTermLiabilities"
+      ]
+    },
+    "total_liabilities": {
+      "match_threshold": 80,
+      "concepts": [
+        "Liabilities",
+        "TotalLiabilities",
+        "LiabilitiesNet"
+      ]
+    },
+    "stockholders_equity": {
+      "match_threshold": 80,
+      "concepts": [
+        "StockholdersEquity",
+        "ShareholdersEquity",
+        "Equity"
+      ]
+    },
+    "total_liabilities_equity": {
+      "match_threshold": 80,
+      "concepts": [
+        "LiabilitiesAndStockholdersEquity",
+        "TotalLiabilitiesAndEquity",
+        "LiabilitiesAndEquity"
+      ]
+    }
+  },
+  "CashFlow": {
+    "net_cash_from_operating_activities": {
+      "match_threshold": 80,
+      "concepts": [
+        "NetCashProvidedByUsedInOperatingActivities",
+        "NetCashFromOperatingActivities",
+        "OperatingCashFlow"
+      ]
+    },
+    "net_cash_from_investing_activities": {
+      "match_threshold": 80,
+      "concepts": [
+        "NetCashProvidedByUsedInInvestingActivities",
+        "NetCashFromInvestingActivities",
+        "InvestingCashFlow"
+      ]
+    },
+    "net_cash_from_financing_activities": {
+      "match_threshold": 80,
+      "concepts": [
+        "NetCashProvidedByUsedInFinancingActivities",
+        "NetCashFromFinancingActivities",
+        "FinancingCashFlow"
+      ]
+    },
+    "net_increase_decrease_in_cash": {
+      "match_threshold": 80,
+      "concepts": [
+        "IncreaseDecreaseInCashAndCashEquivalents",
+        "NetChangeInCashAndCashEquivalents",
+        "NetChangeInCash"
+      ]
+    },
+    "cash": {
+      "match_threshold": 80,
+      "concepts": [
+        "Cash",
+        "TotalCash"
+      ]
+    }
+  },
+  "StatementOfStockholdersEquity": {
+    "stockholders_equity": {
+      "match_threshold": 80,
+      "concepts": [
+        "StockHoldersEquity"
+      ]
+    },
+    "other_comprehensive_income": {
+      "match_threshold": 90,
+      "concepts": [
+        "OtherComprehensiveIncome",
+        "OtherComprehensiveIncomeNetOfTax",
+        "AvailableForSaleSecuritiesChange",
+        "OtherComprehensiveIncomeLossNetOfTax",
+        "AccumulatedOtherComprehensiveIncome",
+        "OCI"
+      ]
+    }
+  }
+}
+

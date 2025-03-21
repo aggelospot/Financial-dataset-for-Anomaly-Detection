@@ -1,6 +1,6 @@
 import pandas as pd
 import os
-from typing import Dict, List
+from typing import Dict, List, Union
 
 
 class DataLoader:
@@ -54,22 +54,40 @@ class DataLoader:
         else:
             raise KeyError(f"No dataset loaded with key: {key}")
 
-    def save_dataset(self, key: str, out_path: str, **kwargs) -> None:
+    def save_dataset(
+            self,
+            key_or_df: Union[str, pd.DataFrame],
+            out_path: str,
+            **kwargs
+    ) -> None:
         """
-        Saves the DataFrame associated with the given key to an output file as
-        either CSV or JSON, inferred by the file extension.
+        Saves a dataset to an output file. The dataset can be provided as:
+          - a string `key` corresponding to a DataFrame in `self.loaded_data`
+          - a direct `pd.DataFrame` object
+
+        The file format is inferred from the out_path extension (CSV or JSON).
 
         Parameters
         ----------
-        key : str
-            The key in self.loaded_data corresponding to the DataFrame to save.
+        key_or_df : Union[str, pd.DataFrame]
+            Either the key for a loaded DataFrame in `self.loaded_data` or
+            a DataFrame object itself.
         out_path : str
             The path (including filename) to which the DataFrame will be saved.
             The file extension (.csv or .json) determines the format.
         **kwargs : dict
-            Additional arguments to pass to the Pandas writer methods (e.g., index=False).
+            Additional arguments to pass to Pandas writer methods (e.g., index=False).
         """
-        df = self.get_dataset(key)
+        if isinstance(key_or_df, str):
+            df = self.get_dataset(key_or_df)
+        elif isinstance(key_or_df, pd.DataFrame):
+            df = key_or_df
+        else:
+            raise ValueError(
+                "key_or_df must be either a string key or a pandas DataFrame."
+            )
+
+        print("Saving dataset...")
 
         _, extension = os.path.splitext(out_path)
         extension = extension.lower()
@@ -77,7 +95,7 @@ class DataLoader:
         if extension == '.csv':
             df.to_csv(out_path, index=False, **kwargs)
         elif extension == '.json':
-            df.to_json(out_path, **kwargs)
+            df.to_json(out_path, orient='records', lines=True, **kwargs)
         else:
             raise ValueError("Unsupported file extension. Please use .csv or .json.")
 
